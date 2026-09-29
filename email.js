@@ -2,11 +2,19 @@
 // Failures here are logged but never thrown — a broken email should never break
 // the actual RFI workflow (submitting, assigning, answering all still work).
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+// RESEND_API_KEY and FROM_ADDRESS are deliberately NOT read into constants here.
+// They're read fresh inside sendEmail() every time it's called — reading them once
+// at the top of this file would freeze whatever value existed at the exact moment
+// the app started, and never notice if the .env file changes afterward (which is
+// exactly the bug that caused emails to silently never send after adding the key
+// post-deployment).
+const FROM_ADDRESS_DEFAULT = 'onboarding@resend.dev';
 const APP_NAME = 'The Lorel — RFI Log';
 
 async function sendEmail({ to, subject, html }) {
+  const RESEND_API_KEY = process.env.RESEND_API_KEY;
+  const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || FROM_ADDRESS_DEFAULT;
+
   if (!RESEND_API_KEY) {
     console.log(`[email] Skipped — RESEND_API_KEY not set. Would have sent "${subject}" to ${to}`);
     return;
