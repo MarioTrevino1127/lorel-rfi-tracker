@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lorel — <%= user.display_label %></title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <%- include('partials/header', { user }) %>
+
+  <div class="banner">
+    <strong>Viewing as <%= user.display_label %>.</strong> You see the same published log every bidder sees, with no company names attached, plus a form to submit your own questions.
+  </div>
+
+  <div class="tabs">
+    <a class="tab <%= tab === 'log' ? 'active' : '' %>" href="/gc?tab=log">Shared log</a>
+    <a class="tab <%= tab === 'submit' ? 'active' : '' %>" href="/gc?tab=submit">Submit an RFI</a>
+  </div>
+
+  <% if (tab === 'submit') { %>
+    <div class="card">
+      <% if (error) { %><div class="banner error"><%= error %></div><% } %>
+      <form method="POST" action="/gc/rfi" enctype="multipart/form-data">
+        <label class="field-label">Subject</label>
+        <input type="text" name="subject" placeholder="e.g. Waterproofing detail at grid C4" required>
+        <label class="field-label">Spec section / drawing reference</label>
+        <input type="text" name="spec_ref" placeholder="e.g. Spec 07 13 00 / Dwg A-502">
+        <label class="field-label">Question</label>
+        <textarea name="question" rows="4" placeholder="Keep it specific to the drawings/specs — avoid referencing conversations, dates, site visits, or anything that could identify your firm. Other bidders will see this exact wording as soon as you submit." required></textarea>
+        <label class="field-label">Attach a file (optional)</label>
+        <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+        <p class="note">PDF, JPG, or PNG only, 3MB max. Hidden file metadata is automatically stripped before it's stored.</p>
+        <p class="note">Your question appears in the shared log right away, numbered, with no company name attached. The answer shows up once a consultant answers and the owner approves it.</p>
+        <button class="action" type="submit">Submit RFI</button>
+      </form>
+    </div>
+  <% } else { %>
+    <%- include('partials/log', { log }) %>
+  <% } %>
+</div>
+</body>
+</html>

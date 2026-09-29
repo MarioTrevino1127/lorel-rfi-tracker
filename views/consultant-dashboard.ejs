@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lorel — <%= user.display_label %></title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <%- include('partials/header', { user }) %>
+
+  <div class="banner">
+    <strong>Viewing as <%= user.display_label %><%= user.discipline ? ' (' + user.discipline + ')' : '' %>.</strong>
+    You draft answers here, but nothing goes out to bidders until the owner approves it. You don't see which GC asked — only the question.
+  </div>
+
+  <div class="tabs">
+    <a class="tab <%= tab === 'answer' ? 'active' : '' %>" href="/consultant?tab=answer">Needs answer (<%= assigned.length %>)</a>
+    <a class="tab <%= tab === 'pending' ? 'active' : '' %>" href="/consultant?tab=pending">Sent for approval (<%= pendingApproval.length %>)</a>
+    <a class="tab <%= tab === 'log' ? 'active' : '' %>" href="/consultant?tab=log">Shared log</a>
+  </div>
+
+  <% if (tab === 'answer') { %>
+    <% if (!assigned.length) { %>
+      <div class="empty">No RFIs assigned to you right now.</div>
+    <% } %>
+    <% assigned.forEach(function(r) { %>
+      <div class="card">
+        <div class="rfi-head">
+          <div>
+            <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+            <p class="rfi-subject"><%= r.subject %></p>
+            <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+          </div>
+          <span class="badge assigned">Needs your answer</span>
+        </div>
+        <p class="rfi-question"><%= r.question %></p>
+        <% if (r.question_attachment_filename) { %>
+          <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+        <% } %>
+        <form method="POST" action="/consultant/answer/<%= r.id %>" enctype="multipart/form-data">
+          <label class="field-label">Your answer</label>
+          <textarea name="answer" rows="4" placeholder="Write the answer bidders should see…" required></textarea>
+          <label class="field-label">Attach a file (optional)</label>
+          <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+          <p class="note">PDF, JPG, or PNG only, 3MB max.</p>
+          <button class="action" type="submit">Send to owner for approval</button>
+        </form>
+      </div>
+    <% }); %>
+  <% } else if (tab === 'pending') { %>
+    <% if (!pendingApproval.length) { %>
+      <div class="empty">Nothing waiting on the owner's approval right now.</div>
+    <% } %>
+    <% pendingApproval.forEach(function(r) { %>
+      <div class="card">
+        <div class="rfi-head">
+          <div>
+            <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+            <p class="rfi-subject"><%= r.subject %></p>
+            <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+          </div>
+          <span class="badge answered">Awaiting owner approval</span>
+        </div>
+        <p class="rfi-question"><%= r.question %></p>
+        <% if (r.question_attachment_filename) { %>
+          <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+        <% } %>
+        <div class="answer-block">
+          <span class="answer-label">Your answer</span><%= r.answer %>
+          <% if (r.answer_attachment_filename) { %>
+            <br><a class="attachment-link" href="/attachment/<%= r.id %>/answer" target="_blank" rel="noopener">📎 <%= r.answer_attachment_name %></a>
+          <% } %>
+        </div>
+      </div>
+    <% }); %>
+  <% } else { %>
+    <%- include('partials/log', { log }) %>
+  <% } %>
+</div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+<div class="masthead">
+  <div class="brand">
+    <img src="/logo.png" alt="Pillar Income Asset Management" class="brand-logo" onerror="this.style.display='none'">
+    <div>
+      <h1>The Lorel — RFI Log</h1>
+      <p class="sub">Shared question log for the invited bid — identities hidden from other bidders</p>
+    </div>
+  </div>
+  <div class="who">
+    <span><%= user.display_label %> · <%= user.role %></span>
+    <a class="logout-btn" href="/account/change-password" style="text-decoration:none; display:inline-block;">Account settings</a>
+    <form method="POST" action="/logout"><button class="logout-btn" type="submit">Sign out</button></form>
+  </div>
+</div>

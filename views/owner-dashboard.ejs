@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Lorel — Owner</title>
+<link rel="icon" href="/favicon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="app">
+  <%- include('partials/header', { user }) %>
+
+  <div class="banner">
+    <strong>Viewing as Owner.</strong> You're the only one who sees which GC submitted which RFI. Nothing reaches the shared log until you approve it.
+  </div>
+
+  <% if (justCreated) { %>
+    <div class="banner success">
+      <strong>Login created.</strong> Share this with them directly (not over email/Slack if you can help it): <code><%= justCreated %></code>
+      They should change the password after first login — that's not built yet, so for now just reset it here if needed later.
+    </div>
+  <% } %>
+  <% if (notice) { %>
+    <div class="banner error"><%= notice %></div>
+  <% } %>
+
+  <div class="tabs">
+    <a class="tab <%= tab === 'unassigned' ? 'active' : '' %>" href="/owner?tab=unassigned">Unassigned (<%= unassigned.length %>)</a>
+    <a class="tab <%= tab === 'approve' ? 'active' : '' %>" href="/owner?tab=approve">Awaiting approval (<%= awaitingApproval.length %>)</a>
+    <a class="tab <%= tab === 'all' ? 'active' : '' %>" href="/owner?tab=all">All RFIs</a>
+    <a class="tab <%= tab === 'users' ? 'active' : '' %>" href="/owner?tab=users">Manage users</a>
+    <a class="tab <%= tab === 'log' ? 'active' : '' %>" href="/owner?tab=log">Shared log</a>
+  </div>
+
+  <% if (tab === 'unassigned') { %>
+    <% if (!unassigned.length) { %>
+      <div class="empty">Nothing waiting on assignment.</div>
+    <% } %>
+    <% unassigned.forEach(function(r) { %>
+      <% var gc = users.find(u => u.id === r.gc_user_id); %>
+      <div class="card">
+        <div class="rfi-head">
+          <div>
+            <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+            <span class="gc-tag"> · Submitted by <%= gc ? gc.display_label : 'Unknown' %></span>
+            <p class="rfi-subject"><%= r.subject %></p>
+            <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+          </div>
+          <span class="badge submitted">Unassigned</span>
+        </div>
+        <p class="rfi-question"><%= r.question %></p>
+        <% if (r.question_attachment_filename) { %>
+          <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+        <% } %>
+        <form method="POST" action="/owner/assign/<%= r.id %>" class="inline-form">
+          <div>
+            <label class="field-label">Assign to consultant</label>
+            <select name="consultant_id" required>
+              <option value="">Choose one…</option>
+              <% consultants.forEach(function(c) { %>
+                <option value="<%= c.id %>"><%= c.display_label %><%= c.discipline ? ' — ' + c.discipline : '' %></option>
+              <% }); %>
+            </select>
+          </div>
+          <button class="action" type="submit">Assign</button>
+        </form>
+        <% if (!consultants.length) { %>
+          <p class="note">No consultant accounts yet — add one under "Manage users" first.</p>
+        <% } %>
+        <p class="note" style="margin-top:14px;">— or, if this one's yours to answer —</p>
+        <form method="POST" action="/owner/answer-directly/<%= r.id %>" enctype="multipart/form-data">
+          <label class="field-label">Answer it yourself</label>
+          <textarea name="answer" rows="3" placeholder="Write the answer — this publishes to the shared log immediately, no separate approval step needed."></textarea>
+          <label class="field-label">Attach a file (optional)</label>
+          <input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png">
+          <button class="action secondary" type="submit">Answer &amp; publish now</button>
+        </form>
+      </div>
+    <% }); %>
+
+  <% } else if (tab === 'approve') { %>
+    <% if (!awaitingApproval.length) { %>
+      <div class="empty">Nothing waiting on your approval.</div>
+    <% } %>
+    <% awaitingApproval.forEach(function(r) { %>
+      <% var gc = users.find(u => u.id === r.gc_user_id); %>
+      <div class="card">
+        <div class="rfi-head">
+          <div>
+            <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+            <span class="gc-tag"> · Submitted by <%= gc ? gc.display_label : 'Unknown' %> · Answered by <%= r.consultant_label %></span>
+            <p class="rfi-subject"><%= r.subject %></p>
+            <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+          </div>
+          <span class="badge answered">Awaiting your approval</span>
+        </div>
+        <p class="rfi-question"><%= r.question %></p>
+        <% if (r.question_attachment_filename) { %>
+          <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+        <% } %>
+        <% if (r.answer_attachment_filename) { %>
+          <p class="note" style="margin-top:10px;">Consultant attached: <a class="attachment-link" href="/attachment/<%= r.id %>/answer" target="_blank" rel="noopener">📎 <%= r.answer_attachment_name %></a></p>
+        <% } %>
+        <form method="POST" action="/owner/publish/<%= r.id %>">
+          <label class="field-label">Answer — edit if needed before publishing</label>
+          <textarea name="answer" rows="4"><%= r.answer %></textarea>
+          <button class="action" type="submit">Approve &amp; publish to shared log</button>
+        </form>
+      </div>
+    <% }); %>
+
+  <% } else if (tab === 'all') { %>
+    <% if (!all.length) { %>
+      <div class="empty">No RFIs yet.</div>
+    <% } %>
+    <% all.forEach(function(r) { %>
+      <div class="card">
+        <div class="rfi-head">
+          <div>
+            <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+            <span class="gc-tag"> · <%= r.gc_label %><%= r.answered_by_owner ? ' · Answered by owner' : (r.consultant_label ? ' · ' + r.consultant_label : '') %></span>
+            <p class="rfi-subject"><%= r.subject %></p>
+            <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+          </div>
+          <span class="badge <%= r.status %>"><%=
+            r.status === 'published' ? 'Published' :
+            r.status === 'answered' ? 'Awaiting your approval' :
+            r.status === 'assigned' ? 'Awaiting consultant' : 'Unassigned'
+          %></span>
+        </div>
+        <p class="rfi-question"><%= r.question %></p>
+        <% if (r.question_attachment_filename) { %>
+          <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+        <% } %>
+        <% if (r.answer) { %>
+          <div class="answer-block">
+            <span class="answer-label"><%= r.status === 'published' ? 'Published answer' : 'Draft answer' %></span><%= r.answer %>
+            <% if (r.answer_attachment_filename) { %>
+              <br><a class="attachment-link" href="/attachment/<%= r.id %>/answer" target="_blank" rel="noopener">📎 <%= r.answer_attachment_name %></a>
+            <% } %>
+          </div>
+        <% } %>
+      </div>
+    <% }); %>
+
+  <% } else if (tab === 'users') { %>
+    <div class="card">
+      <p class="rfi-subject" style="margin-bottom:10px;">Add a login</p>
+      <form method="POST" action="/owner/users" class="inline-form">
+        <div>
+          <label class="field-label">Role</label>
+          <select name="role" required onchange="document.getElementById('discipline-field').style.display = this.value === 'consultant' ? 'block' : 'none'">
+            <option value="gc">GC (bidder)</option>
+            <option value="consultant">Consultant</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Username</label>
+          <input type="text" name="username" placeholder="e.g. gc-a" required>
+        </div>
+        <div>
+          <label class="field-label">Display label</label>
+          <input type="text" name="display_label" placeholder="e.g. GC A, or Smith Architecture" required>
+        </div>
+        <div>
+          <label class="field-label">Notification email</label>
+          <input type="text" name="email" placeholder="required for consultants, optional for GCs">
+        </div>
+        <div id="discipline-field" style="display:none;">
+          <label class="field-label">Discipline</label>
+          <input type="text" name="discipline" placeholder="e.g. Structural">
+        </div>
+        <button class="action" type="submit">Create login</button>
+      </form>
+      <p class="note">A random password is generated — you'll see it once right here after creating the account, so hand it off right away. Consultants need an email on file to get notified when an RFI is assigned to them.</p>
+    </div>
+
+    <div class="card">
+      <p class="rfi-subject" style="margin-bottom:10px;">Existing logins</p>
+      <table class="userlist">
+        <thead><tr><th>Label</th><th>Username</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <% users.forEach(function(u) { %>
+            <tr>
+              <td><%= u.display_label %><%= u.discipline ? ' (' + u.discipline + ')' : '' %></td>
+              <td class="mono"><%= u.username %></td>
+              <td class="mono"><%= u.email || '—' %></td>
+              <td><%= u.role %></td>
+              <td><span class="badge <%= u.active ? 'published' : 'inactive' %>"><%= u.active ? 'Active' : 'Deactivated' %></span></td>
+              <td>
+                <form method="POST" action="/owner/users/<%= u.id %>/reset-password" style="display:inline">
+                  <button class="pill-btn" type="submit">Reset password</button>
+                </form>
+                <% if (u.active) { %>
+                  <form method="POST" action="/owner/users/<%= u.id %>/deactivate" style="display:inline">
+                    <button class="pill-btn" type="submit">Deactivate</button>
+                  </form>
+                <% } else { %>
+                  <form method="POST" action="/owner/users/<%= u.id %>/reactivate" style="display:inline">
+                    <button class="pill-btn" type="submit">Reactivate</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+
+  <% } else { %>
+    <%- include('partials/log', { log }) %>
+  <% } %>
+</div>
+</body>
+</html>

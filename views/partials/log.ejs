@@ -1,0 +1,34 @@
+<% if (!log.length) { %>
+  <div class="empty">Nothing submitted yet — check back as bidders submit questions.</div>
+<% } else { %>
+  <% log.forEach(function(r) { %>
+    <div class="card">
+      <div class="rfi-head">
+        <div>
+          <span class="rfi-number"><%= fmtNumber(r.number) %></span>
+          <p class="rfi-subject"><%= r.subject %></p>
+          <% if (r.spec_ref) { %><span class="spec-ref"><%= r.spec_ref %></span><% } %>
+        </div>
+        <span class="badge <%= r.status %>"><%=
+          r.status === 'published' ? 'Published' :
+          r.status === 'answered' ? 'Awaiting owner approval' :
+          r.status === 'assigned' ? 'Awaiting consultant' : 'Awaiting consultant assignment'
+        %></span>
+      </div>
+      <p class="rfi-question"><%= r.question %></p>
+      <% if (r.question_attachment_filename) { %>
+        <a class="attachment-link" href="/attachment/<%= r.id %>/question" target="_blank" rel="noopener">📎 <%= r.question_attachment_name %></a>
+      <% } %>
+      <% if (r.status === 'published') { %>
+        <div class="answer-block">
+          <span class="answer-label">Answer</span><%= r.answer %>
+          <% if (r.answer_attachment_filename) { %>
+            <br><a class="attachment-link" href="/attachment/<%= r.id %>/answer" target="_blank" rel="noopener">📎 <%= r.answer_attachment_name %></a>
+          <% } %>
+        </div>
+      <% } else { %>
+        <p class="note">Answer pending — will appear here once the owner approves it.</p>
+      <% } %>
+    </div>
+  <% }); %>
+<% } %>
